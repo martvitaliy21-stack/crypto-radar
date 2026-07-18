@@ -7,6 +7,7 @@
 """
 
 import json
+import math
 import time
 import urllib.request
 import urllib.error
@@ -90,6 +91,61 @@ def pct(x):
     return round(x, 2) if isinstance(x, (int, float)) else None
 
 
+def compute_risks(spark, btc_spark):
+    """Риск-метрики по часовым ценам за 7 дней (sparkline CoinGecko).
+
+    - vol: годовая волатильность, % (std лог-доходностей, аннуализация √(24·365))
+    - var95: дневной параметрический VaR 95%, % (потеря, которую в 19 из 20
+      дней убыток не должен превысить)
+    - mdd: максимальная просадка от пика за 7 дней, %
+    - beta: бета к биткоину по часовым доходностям
+    - risk: сводный индекс риска 0-100
+    """
+    if not spark or len(spark) < 48:
+        return None
+    rets = [math.log(spark[i + 1] / spark[i])
+            for i in range(len(spark) - 1)
+            if spark[i] > 0 and spark[i + 1] > 0]
+    if len(rets) < 24:
+        return None
+    mean = sum(rets) / len(rets)
+    sd = math.sqrt(sum((r - mean) ** 2 for r in rets) / len(rets))
+    vol_annual = sd * math.sqrt(24 * 365) * 100
+    # дневной VaR 95% (параметрический, нормальное приближение)
+    var95 = max(-(mean * 24 - 1.645 * sd * math.sqrt(24)) * 100, 0)
+
+    peak, mdd = spark[0], 0.0
+    for p in spark:
+        peak = max(peak, p)
+        mdd = min(mdd, p / peak - 1)
+
+    beta = None
+    if btc_spark and len(btc_spark) >= 48:
+        n = min(len(spark), len(btc_spark))
+        a, b = spark[-n:], btc_spark[-n:]
+        ra = [math.log(a[i + 1] / a[i]) for i in range(n - 1) if a[i] > 0 and a[i + 1] > 0]
+        rb = [math.log(b[i + 1] / b[i]) for i in range(n - 1) if b[i] > 0 and b[i + 1] > 0]
+        m = min(len(ra), len(rb))
+        if m > 24:
+            ra, rb = ra[-m:], rb[-m:]
+            ma, mb = sum(ra) / m, sum(rb) / m
+            cov = sum((ra[i] - ma) * (rb[i] - mb) for i in range(m)) / m
+            var_b = sum((r - mb) ** 2 for r in rb) / m
+            if var_b > 0:
+                beta = cov / var_b
+
+    risk = (min(vol_annual, 300) / 300 * 40
+            + min(abs(mdd * 100), 60) / 60 * 30
+            + min(var95, 25) / 25 * 30)
+    return {
+        "vol": round(vol_annual),
+        "var95": round(var95, 1),
+        "mdd": round(mdd * 100, 1),
+        "beta": round(beta, 2) if beta is not None else None,
+        "risk": round(risk),
+    }
+
+
 def score_coin(c, trending_ids):
     """Скор потенциала 0-100 + причины, почему монета интересна."""
     score = 0.0
@@ -145,6 +201,7 @@ def slim(c, score, reasons):
         "spark": (c.get("sparkline_in_7d") or {}).get("price", [])[::4],
         "score": score,
         "reasons": reasons,
+        "risks": c.get("_risks"),
         "url": f"https://www.coingecko.com/en/coins/{c['id']}",
     }
 
@@ -155,10 +212,15 @@ def build():
     trending_ids = {t["item"]["id"]: i for i, t in enumerate(trending_raw)}
     dex_pairs = fetch_dex_boosted()
 
+    btc = next((c for c in markets if c.get("id") == "bitcoin"), None)
+    btc_spark = (btc.get("sparkline_in_7d") or {}).get("price", []) if btc else []
+
     scored = []
     for c in markets:
         if not c.get("market_cap") or not c.get("total_volume"):
             continue
+        c["_risks"] = compute_risks(
+            (c.get("sparkline_in_7d") or {}).get("price", []), btc_spark)
         s, r = score_coin(c, trending_ids)
         scored.append((c, s, r))
 
@@ -197,6 +259,9 @@ def build():
             reasons.append(f"+{round(ch24, 1)}% за 24ч")
         if liq > 0 and vol24 / liq > 1:
             reasons.append(f"Объём {round(vol24 / liq, 1)}× к ликвидности")
+        # оценка слиппеджа сделки $1000 в пуле constant-product: ~2·сделка/ликвидность
+        slippage_1k = round(2 * 1000 / liq * 100, 2) if liq else None
+        turnover = round(vol24 / liq, 1) if liq else None
         dex.append({
             "symbol": base.get("symbol"),
             "name": base.get("name"),
@@ -207,6 +272,7 @@ def build():
             "liquidity": liq,
             "mcap": p.get("marketCap"),
             "reasons": reasons,
+            "risks": {"slippage1k": slippage_1k, "turnover": turnover, "risk": 95},
             "url": p.get("url"),
         })
     dex = dex[:12]

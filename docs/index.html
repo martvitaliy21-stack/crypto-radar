@@ -3,33 +3,48 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Крипто-радар — перспективные монеты</title>
+<title>ГРОШ — крипто-радар</title>
 <style>
   :root {
-    --bg: #0b0e14;
-    --panel: #121722;
-    --panel2: #1a2130;
-    --border: #232c3f;
-    --text: #e6ebf4;
-    --muted: #8b96ab;
-    --green: #22c07a;
-    --red: #ef5561;
-    --accent: #4f8ef7;
-    --gold: #f2b544;
+    --bg: #060708;
+    --panel: #0d1015;
+    --panel2: #151a22;
+    --border: #1f2630;
+    --text: #e8eaee;
+    --muted: #7d8899;
+    --green: #2fd08a;
+    --red: #f0505c;
+    --gold: #d9a83f;
+    --gold-dim: #8a6b28;
+    --risk: #c9564f;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     background: var(--bg);
+    background-image: radial-gradient(ellipse 80% 40% at 50% -10%, rgba(217,168,63,.07), transparent);
     color: var(--text);
     font-family: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
     min-height: 100vh;
   }
-  .wrap { max-width: 1180px; margin: 0 auto; padding: 24px 16px 60px; }
-  header { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
-  h1 { font-size: 26px; letter-spacing: -0.5px; }
-  h1 span { color: var(--accent); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 28px 16px 60px; }
+  header { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+  h1 {
+    font-size: 30px; letter-spacing: 6px; font-weight: 800; color: var(--gold);
+    font-family: Georgia, "Times New Roman", serif;
+  }
+  h1 small { color: var(--muted); font-size: 13px; letter-spacing: 0; font-family: inherit; font-weight: 400; }
   #updated { color: var(--muted); font-size: 13px; }
-  .disclaimer { color: var(--muted); font-size: 12px; margin-bottom: 18px; }
+  .disclaimer { color: var(--muted); font-size: 12px; margin-bottom: 10px; }
+
+  details.legend { margin-bottom: 18px; border: 1px solid var(--border); border-radius: 12px; background: var(--panel); }
+  details.legend summary {
+    cursor: pointer; padding: 10px 14px; font-size: 13px; color: var(--gold);
+    list-style: none;
+  }
+  details.legend summary::before { content: "▸ "; }
+  details.legend[open] summary::before { content: "▾ "; }
+  details.legend .body { padding: 0 16px 14px; font-size: 12.5px; color: var(--muted); line-height: 1.65; }
+  details.legend b { color: var(--text); font-weight: 600; }
 
   nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
   nav button {
@@ -37,16 +52,16 @@
     padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 14px;
     transition: all .15s;
   }
-  nav button:hover { color: var(--text); }
-  nav button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  nav button:hover { color: var(--text); border-color: var(--gold-dim); }
+  nav button.active { background: var(--gold); border-color: var(--gold); color: #14100a; font-weight: 600; }
 
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 14px; }
   .card {
     background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
     padding: 16px; display: flex; flex-direction: column; gap: 10px;
     transition: border-color .15s; text-decoration: none; color: inherit;
   }
-  .card:hover { border-color: var(--accent); }
+  .card:hover { border-color: var(--gold-dim); }
   .row1 { display: flex; align-items: center; gap: 10px; }
   .row1 img { width: 34px; height: 34px; border-radius: 50%; background: var(--panel2); }
   .coin-name { font-weight: 600; font-size: 15px; }
@@ -68,7 +83,7 @@
   .up { color: var(--green); }
   .down { color: var(--red); }
 
-  .row3 { display: flex; gap: 16px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .row3 { display: flex; gap: 16px; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; flex-wrap: wrap; }
   canvas.spark { width: 100%; height: 40px; }
 
   .reasons { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -76,16 +91,38 @@
     font-size: 11.5px; color: var(--text); background: var(--panel2);
     border: 1px solid var(--border); padding: 3px 9px; border-radius: 9px;
   }
+
+  .risks { display: flex; flex-wrap: wrap; gap: 6px; border-top: 1px dashed var(--border); padding-top: 10px; }
+  .risk-chip {
+    font-size: 11.5px; color: #e8b9b5; background: rgba(201,86,79,.10);
+    border: 1px solid rgba(201,86,79,.35); padding: 3px 9px; border-radius: 9px;
+    cursor: help; font-variant-numeric: tabular-nums;
+  }
+  .risk-chip.head { font-weight: 700; }
+  .risk-chip.r-mid { color: #ecd9a8; background: rgba(217,168,63,.10); border-color: rgba(217,168,63,.4); }
   .empty, .loading { color: var(--muted); padding: 40px 0; text-align: center; grid-column: 1/-1; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>📡 Крипто-<span>радар</span></h1>
+    <h1>₴ ГРОШ <small>крипто-радар</small></h1>
     <div id="updated">загрузка...</div>
   </header>
-  <div class="disclaimer">Скор 0–100 — автоматическая оценка интереса рынка (объём, моментум, тренды). Не финансовый совет — всегда проверяй проект сам (DYOR).</div>
+  <div class="disclaimer">Скор 0–100 — автоматическая оценка интереса рынка. Не финансовый совет — всегда проверяй проект сам (DYOR).</div>
+
+  <details class="legend">
+    <summary>Как читать риск-метрики</summary>
+    <div class="body">
+      <b>Риск 0–100</b> — сводный индекс из метрик ниже. До 35 — умеренный (по меркам крипты), 35–60 — высокий, выше 60 — экстремальный.<br>
+      <b>Волатильность (годовая)</b> — размах колебаний цены в годовом выражении, по часовым данным за 7 дней. Ориентир: биткоин ~40–60%, акции ~15–20%. 200% означает, что колебания в разы сильнее биткоина.<br>
+      <b>VaR 95% (дневной)</b> — статистическая граница дневного убытка: в 19 из 20 дней потеря не должна превысить это значение, но в ~1 день из 20 — может, и заметно.<br>
+      <b>Макс. просадка 7д</b> — сколько цена падала от локального пика за последнюю неделю. Показывает, какую «яму» ты мог бы поймать, купив на пике.<br>
+      <b>β к BTC</b> — чувствительность к движению биткоина: β=2 — движется вдвое сильнее рынка (и вверх, и вниз), β&lt;0 — движется против.<br>
+      <b>Слиппедж $1000 (DEX)</b> — на сколько сделка в $1000 сдвинет цену в пуле ликвидности. Выше 2% — из позиции будет дорого выходить.<br>
+      <b>Оборот/ликвидность (DEX)</b> — во сколько раз дневной объём превышает пул. Больше 5× — ажиотаж: либо хайп, либо накрутка объёма.
+    </div>
+  </details>
 
   <nav id="tabs">
     <button data-tab="top" class="active">⭐ Топ по скору</button>
@@ -122,6 +159,33 @@ const chg = (v, label) => {
   return `<span class="chg ${cls}"><small>${label}</small>${sign}${v.toFixed(1)}%</span>`;
 };
 
+const TIP = {
+  risk: 'Сводный индекс риска 0–100: волатильность + просадка + VaR. До 35 — умеренный, 35–60 — высокий, выше 60 — экстремальный',
+  vol: 'Годовая волатильность по часовым данным за 7 дней. Биткоин ~40–60%, акции ~15–20%',
+  var95: 'Дневной VaR 95%: в 19 из 20 дней убыток не должен превысить это значение; в ~1 день из 20 — может',
+  mdd: 'Максимальная просадка от пика за 7 дней — сколько потерял бы купивший на локальном максимуме',
+  beta: 'Бета к биткоину: 2 — движется вдвое сильнее BTC в обе стороны; меньше 0 — движется против',
+  slip: 'Оценка сдвига цены при сделке $1000 в пуле ликвидности (формула constant-product)',
+  turn: 'Дневной объём к размеру пула. Больше 5× — ажиотаж или накрутка объёма'
+};
+const chip = (txt, tip, cls) => `<span class="risk-chip ${cls || ''}" title="${tip}">${txt}</span>`;
+
+function riskBlock(r) {
+  if (!r) return '';
+  const parts = [];
+  if (r.risk != null) {
+    const lvl = r.risk >= 60 ? 'экстремальный' : r.risk >= 35 ? 'высокий' : 'умеренный';
+    parts.push(chip(`⚠ Риск ${r.risk}/100 — ${lvl}`, TIP.risk, 'head' + (r.risk < 35 ? ' r-mid' : '')));
+  }
+  if (r.vol != null) parts.push(chip(`Волатильность ${r.vol}% год.`, TIP.vol, r.vol < 100 ? 'r-mid' : ''));
+  if (r.var95 != null) parts.push(chip(`VaR 95%: −${r.var95}%/день`, TIP.var95, r.var95 < 8 ? 'r-mid' : ''));
+  if (r.mdd != null) parts.push(chip(`Просадка 7д: ${r.mdd}%`, TIP.mdd, r.mdd > -20 ? 'r-mid' : ''));
+  if (r.beta != null) parts.push(chip(`β к BTC: ${r.beta}`, TIP.beta, Math.abs(r.beta) < 1.5 ? 'r-mid' : ''));
+  if (r.slippage1k != null) parts.push(chip(`Слиппедж $1K: ~${r.slippage1k}%`, TIP.slip, r.slippage1k < 1 ? 'r-mid' : ''));
+  if (r.turnover != null) parts.push(chip(`Оборот ${r.turnover}× к пулу`, TIP.turn, r.turnover < 5 ? 'r-mid' : ''));
+  return parts.length ? `<div class="risks">${parts.join('')}</div>` : '';
+}
+
 function card(c) {
   const scoreCls = c.score >= 60 ? 'hi' : c.score >= 35 ? 'mid' : 'lo';
   return `<a class="card" href="${c.url || '#'}" target="_blank" rel="noopener">
@@ -146,6 +210,7 @@ function card(c) {
     </div>
     ${c.spark && c.spark.length > 5 ? `<canvas class="spark" data-spark="${c.spark.map(v => +v.toPrecision(5)).join(',')}"></canvas>` : ''}
     ${c.reasons && c.reasons.length ? `<div class="reasons">${c.reasons.map(r => `<span class="reason">${r}</span>`).join('')}</div>` : ''}
+    ${riskBlock(c.risks)}
   </a>`;
 }
 
@@ -157,7 +222,7 @@ function drawSparks() {
     const ctx = cv.getContext('2d'); ctx.scale(dpr, dpr);
     const min = Math.min(...pts), max = Math.max(...pts), span = (max - min) || 1;
     const up = pts[pts.length - 1] >= pts[0];
-    ctx.strokeStyle = up ? '#22c07a' : '#ef5561';
+    ctx.strokeStyle = up ? '#2fd08a' : '#f0505c';
     ctx.lineWidth = 1.5; ctx.beginPath();
     pts.forEach((p, i) => {
       const x = i / (pts.length - 1) * w;
